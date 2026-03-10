@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visualiseur de Tris — ASD</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #7c6aff;
+    --accent2: #ff6a6a;
+    --accent3: #6affa0;
+    --accent4: #ffda6a;
+    --text: #e0e0f0;
+    --muted: #6060a0;
+    --pivot: #ff6a6a;
+    --comparing: #ffda6a;
+    --swapping: #ff6aff;
+    --sorted: #6affa0;
+    --normal: #7c6aff;
+    --left: #6aaeff;
+    --right: #ff9e6a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 2rem 2rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  header h1 span { color: var(--accent); }
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 0;
+    min-height: calc(100vh - 130px);
+  }
+
+  .viz-panel {
+    padding: 1.5rem 2rem;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .info-panel {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+  }
+
+  /* Array visualization */
+  .array-container {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 6px;
+    height: 200px;
+    padding: 1rem;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.3s;
+  }
+
+  .bar {
+    width: 38px;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.3s, background 0.25s;
+    position: relative;
+  }
+
+  .bar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    transition: color 0.25s;
+  }
+
+  .bar-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text);
+    transition: color 0.25s;
+  }
+
+  .bar.normal { background: var(--normal); }
+  .bar.comparing { background: var(--comparing); }
+  .bar.swapping { background: var(--swapping); }
+  .bar.sorted { background: var(--sorted); }
+  .bar.pivot { background: var(--pivot); }
+  .bar.left-part { background: var(--left); }
+  .bar.right-part { background: var(--right); }
+  .bar.merged { background: var(--accent3); }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #9580ff; }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+
+  .speed-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  input[type=range] {
+    width: 80px;
+    accent-color: var(--accent);
+  }
+
+  /* Steps */
+  .steps-container {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: 260px;
+  }
+
+  .step-item {
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--muted);
+    border-left: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .step-item.active {
+    background: #1a1a2e;
+    color: var(--text);
+    border-left-color: var(--accent);
+  }
+
+  .step-item .step-num {
+    color: var(--accent);
+    margin-right: 0.5rem;
+  }
+
+  /* Info panel sections */
+  .info-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .info-section h3 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .info-section p, .info-section li {
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: #b0b0d0;
+  }
+
+  .info-section ul { padding-left: 1rem; }
+
+  .complexity-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .complexity-item {
+    background: #0d0d18;
+    border-radius: 6px;
+    padding: 0.5rem;
+    text-align: center;
+  }
+
+  .complexity-item .label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .complexity-item .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-top: 0.2rem;
+  }
+
+  .good { color: var(--accent3); }
+  .medium { color: var(--accent4); }
+  .bad { color: var(--accent2); }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .code-block {
+    background: #0d0d18;
+    border-radius: 6px;
+    padding: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    line-height: 1.7;
+    color: #c0c0e0;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .code-block .kw { color: #7c6aff; }
+  .code-block .fn { color: #6aaeff; }
+  .code-block .cm { color: #505070; font-style: italic; }
+  .code-block .hl { background: #1a1a3a; display: inline-block; width: 100%; }
+
+  .step-info {
+    background: #0f0f20;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    font-size: 0.82rem;
+    min-height: 50px;
+    line-height: 1.5;
+  }
+
+  .step-info strong { color: var(--accent4); }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .array-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+    background: #0d0d18;
+    border-radius: 6px;
+  }
+
+  .arr-cell {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-weight: 700;
+    transition: all 0.25s;
+    border: 1px solid transparent;
+  }
+
+  .arr-cell.normal { background: #1a1a35; color: #9090c0; border-color: #2a2a4a; }
+  .arr-cell.comparing { background: #2a2800; color: var(--comparing); border-color: var(--comparing); }
+  .arr-cell.swapping { background: #2a0028; color: var(--swapping); border-color: var(--swapping); }
+  .arr-cell.sorted { background: #002a12; color: var(--sorted); border-color: var(--sorted); }
+  .arr-cell.pivot { background: #2a0000; color: var(--pivot); border-color: var(--pivot); }
+  .arr-cell.left-part { background: #001a2a; color: var(--left); border-color: var(--left); }
+  .arr-cell.right-part { background: #2a1400; color: var(--right); border-color: var(--right); }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .viz-panel { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔢 Visualiseur de <span>Tris</span></h1>
+  <div style="font-size:0.82rem; color: var(--muted);">ASD — Chapitre 3 · Tableau de départ : <span style="font-family:'JetBrains Mono',monospace; color:var(--accent4)">[5, 3, 8, 1, 9, 2, 7, 4]</span></div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="selectAlgo('bubble')">🫧 Tri à Bulles</button>
+  <button class="tab" onclick="selectAlgo('selection')">🏆 Tri par Sélection</button>
+  <button class="tab" onclick="selectAlgo('insertion')">📥 Tri par Insertion</button>
+  <button class="tab" onclick="selectAlgo('merge')">🌊 Tri par Fusion</button>
+  <button class="tab" onclick="selectAlgo('quick')">⚡ Tri Rapide</button>
+  <button class="tab" onclick="selectAlgo('counting')">🪣 Tri Comptage</button>
+</div>
+
+<div class="main">
+  <div class="viz-panel">
+    <!-- Bars -->
+    <div class="array-container" id="barChart"></div>
+
+    <!-- Cell array -->
+    <div>
+      <div style="font-size:0.72rem; color:var(--muted); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.5px;">Tableau en cours</div>
+      <div class="array-row" id="cellArray"></div>
+    </div>
+
+    <!-- Step info -->
+    <div class="step-info" id="stepInfo">Appuie sur <strong>▶ Démarrer</strong> pour lancer la visualisation pas-à-pas.</div>
+
+    <!-- Progress -->
+    <div>
+      <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:var(--muted); margin-bottom:0.3rem;">
+        <span id="stepLabel">Étape 0 / 0</span>
+        <span id="opCount">0 opérations</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn btn-primary" id="btnStart" onclick="startViz()">▶ Démarrer</button>
+      <button class="btn btn-secondary" id="btnPrev" onclick="prevStep()" disabled>◀ Préc.</button>
+      <button class="btn btn-secondary" id="btnNext" onclick="nextStep()" disabled>Suiv. ▶</button>
+      <button class="btn btn-ghost" onclick="resetViz()">↺ Reset</button>
+      <div class="speed-wrap">
+        <span>Vitesse</span>
+        <input type="range" id="speedSlider" min="100" max="1500" value="700" step="100" oninput="updateSpeed()">
+        <span id="speedLabel">×1</span>
+      </div>
+    </div>
+
+    <!-- Steps log -->
+    <div>
+      <div style="font-size:0.72rem; color:var(--muted); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.5px;">Journal des étapes</div>
+      <div class="steps-container" id="stepsLog"></div>
+    </div>
+  </div>
+
+  <div class="info-panel">
+    <div class="info-section" id="algoDescription"></div>
+    <div class="info-section">
+      <h3>Complexité</h3>
+      <div class="complexity-grid" id="complexityGrid"></div>
+    </div>
+    <div class="info-section">
+      <h3>Légende des couleurs</h3>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="info-section">
+      <h3>Pseudocode</h3>
+      <div class="code-block" id="codeBlock"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const INITIAL = [5, 3, 8, 1, 9, 2, 7, 4];
+const MAX_VAL = 10;
+
+let currentAlgo = 'bubble';
+let steps = [];
+let currentStep = -1;
+let playing = false;
+let playInterval = null;
+let speed = 700;
+
+const ALGOS = {
+  bubble: {
+    name: '🫧 Tri à Bulles',
+    desc: `<h3>Tri à Bulles — BubbleSort</h3>
+<p>À chaque passage, on compare les voisins. Le plus grand "remonte" comme une bulle. Après i passages, les i plus grands éléments sont en place à droite.</p>
+<ul style="margin-top:0.5rem">
+<li><strong style="color:#ffda6a">Jaune</strong> = éléments comparés</li>
+<li><strong style="color:#ff6aff">Rose</strong> = échange en cours</li>
+<li><strong style="color:#6affa0">Vert</strong> = définitivement en place</li>
+</ul>`,
+    complexity: [
+      { label: 'Moyen', value: 'O(n²)', cls: 'bad' },
+      { label: 'Pire', value: 'O(n²)', cls: 'bad' },
+      { label: 'Meilleur', value: 'O(n)', cls: 'good' }
+    ],
+    legend: [
+      { color: '#7c6aff', label: 'Normal' },
+      { color: '#ffda6a', label: 'Comparaison' },
+      { color: '#ff6aff', label: 'Échange' },
+      { color: '#6affa0', label: 'Trié' }
+    ],
+    code: `<span class="kw">pour</span> i <span class="kw">de</span> 0 <span class="kw">à</span> n-2 :
+  <span class="kw">pour</span> j <span class="kw">de</span> 0 <span class="kw">à</span> n-i-2 :
+    <span class="kw">si</span> A[j+1] < A[j] :
+      <span class="fn">échanger</span>(A[j], A[j+1])
+<span class="cm">// Stable avec <, instable avec <=</span>`,
+    generate: generateBubble
+  },
+  selection: {
+    name: '🏆 Tri par Sélection',
+    desc: `<h3>Tri par Sélection — SelectionSort</h3>
+<p>On cherche le minimum dans le reste du tableau non trié, et on l'échange avec la première position non triée. Seulement O(n) échanges !</p>
+<ul style="margin-top:0.5rem">
+<li><strong style="color:#ffda6a">Jaune</strong> = minimum courant</li>
+<li><strong style="color:#6aaeff">Bleu</strong> = en cours d'examen</li>
+<li><strong style="color:#ff6aff">Rose</strong> = échange final</li>
+<li><strong style="color:#6affa0">Vert</strong> = définitivement en place</li>
+</ul>`,
+    complexity: [
+      { label: 'Moyen', value: 'O(n²)', cls: 'bad' },
+      { label: 'Pire', value: 'O(n²)', cls: 'bad' },
+      { label: 'Échanges', value: 'O(n)', cls: 'good' }
+    ],
+    legend: [
+      { color: '#7c6aff', label: 'Normal' },
+      { color: '#ffda6a', label: 'Minimum' },
+      { color: '#6aaeff', label: 'Examiné' },
+      { color: '#ff6aff', label: 'Échange' },
+      { color: '#6affa0', label: 'Trié' }
+    ],
+    code: `<span class="kw">pour</span> i <span class="kw">de</span> 0 <span class="kw">à</span> n-2 :
+  imin ← i
+  <span class="kw">pour</span> j <span class="kw">de</span> i+1 <span class="kw">à</span> n-1 :
+    <span class="kw">si</span> A[j] < A[imin] :
+      imin ← j
+  <span class="fn">échanger</span>(A[i], A[imin])
+<span class="cm">// NON stable ! O(n²) comp, O(n) éch</span>`,
+    generate: generateSelection
+  },
+  insertion: {
+    name: '📥 Tri par Insertion',
+    desc: `<h3>Tri par Insertion — InsertionSort</h3>
+<p>Comme trier ses cartes dans la main : on prend le prochain élément (tmp) et on le glisse à sa place dans la partie déjà triée, en poussant les plus grands vers la droite.</p>
+<ul style="margin-top:0.5rem">
+<li><strong style="color:#ff6aff">Rose</strong> = élément en main (tmp)</li>
+<li><strong style="color:#ffda6a">Jaune</strong> = décalage vers la droite</li>
+<li><strong style="color:#6affa0">Vert</strong> = partie triée</li>
+</ul>`,
+    complexity: [
+      { label: 'Meilleur', value: 'O(n)', cls: 'good' },
+      { label: 'Moyen', value: 'O(n²)', cls: 'bad' },
+      { label: 'Pire', value: 'O(n²)', cls: 'bad' }
+    ],
+    legend: [
+      { color: '#7c6aff', label: 'Normal' },
+      { color: '#ff6aff', label: 'tmp (en main)' },
+      { color: '#ffda6a', label: 'Décalage →' },
+      { color: '#6affa0', label: 'Trié' }
+    ],
+    code: `<span class="kw">pour</span> i <span class="kw">de</span> 1 <span class="kw">à</span> n-1 :
+  tmp ← A[i]        <span class="cm">// on prend la carte</span>
+  j ← i
+  <span class="kw">tant que</span> j>0 <span class="kw">et</span> A[j-1]>tmp :
+    A[j] ← A[j-1]  <span class="cm">// on pousse à droite</span>
+    j--
+  A[j] ← tmp       <span class="cm">// on insère</span>
+<span class="cm">// Stable ! O(n) si déjà trié</span>`,
+    generate: generateInsertion
+  },
+  merge: {
+    name: '🌊 Tri par Fusion',
+    desc: `<h3>Tri par Fusion — MergeSort</h3>
+<p><em>Divide et impera !</em> On divise en deux, on trie chaque moitié récursivement, puis on fusionne. La fusion compare les têtes de deux listes triées et prend le plus petit.</p>
+<ul style="margin-top:0.5rem">
+<li><strong style="color:#6aaeff">Bleu</strong> = moitié gauche (L)</li>
+<li><strong style="color:#ff9e6a">Orange</strong> = moitié droite (R)</li>
+<li><strong style="color:#6affa0">Vert</strong> = fusionné</li>
+</ul>`,
+    complexity: [
+      { label: 'Moyen', value: 'O(n·logn)', cls: 'good' },
+      { label: 'Pire', value: 'O(n·logn)', cls: 'good' },
+      { label: 'Mémoire', value: 'O(n)', cls: 'medium' }
+    ],
+    legend: [
+      { color: '#6aaeff', label: 'Partie gauche L' },
+      { color: '#ff9e6a', label: 'Partie droite R' },
+      { color: '#6affa0', label: 'Fusionné' },
+      { color: '#7c6aff', label: 'Non traité' }
+    ],
+    code: `<span class="fn">TriFusion</span>(A, lo, hi):
+  <span class="kw">si</span> hi <= lo : <span class="kw">retourner</span>
+  mid ← lo + (hi-lo)/2
+  <span class="fn">TriFusion</span>(A, lo, mid)
+  <span class="fn">TriFusion</span>(A, mid+1, hi)
+  <span class="fn">Fusionner</span>(A, lo, mid, hi)
+<span class="cm">// Stable ! O(n·logn) garanti</span>`,
+    generate: generateMerge
+  },
+  quick: {
+    name: '⚡ Tri Rapide',
+    desc: `<h3>Tri Rapide — QuickSort</h3>
+<p>On choisit un <strong>pivot</strong>, on place les éléments ≤ pivot à gauche et ≥ pivot à droite (partition en place avec i et j qui se rapprochent), puis on trie récursivement.</p>
+<ul style="margin-top:0.5rem">
+<li><strong style="color:#ff6a6a">Rouge</strong> = pivot</li>
+<li><strong style="color:#6aaeff">Bleu</strong> = partition gauche (≤ pivot)</li>
+<li><strong style="color:#ff9e6a">Orange</strong> = partition droite (≥ pivot)</li>
+<li><strong style="color:#6affa0">Vert</strong> = en place définitif</li>
+</ul>`,
+    complexity: [
+      { label: 'Moyen', value: 'O(n·logn)', cls: 'good' },
+      { label: 'Pire', value: 'O(n²)', cls: 'bad' },
+      { label: 'Mémoire', value: 'O(1)', cls: 'good' }
+    ],
+    legend: [
+      { color: '#ff6a6a', label: 'Pivot' },
+      { color: '#6aaeff', label: '≤ pivot (gauche)' },
+      { color: '#ff9e6a', label: '≥ pivot (droite)' },
+      { color: '#ff6aff', label: 'Échange' },
+      { color: '#6affa0', label: 'En place' }
+    ],
+    code: `<span class="fn">Partition</span>(A, lo, hi):
+  i←lo-1, j←hi  <span class="cm">// pivot = A[hi]</span>
+  <span class="kw">boucle</span>:
+    <span class="kw">répéter</span> i++ <span class="kw">tant que</span> A[i]<A[hi]
+    <span class="kw">répéter</span> j-- <span class="kw">tant que</span> A[j]>A[hi]
+    <span class="kw">si</span> i≥j : <span class="kw">sortir</span>
+    <span class="fn">échanger</span>(A[i], A[j])
+  <span class="fn">échanger</span>(A[i], A[hi])
+  <span class="kw">retourner</span> i`,
+    generate: generateQuick
+  },
+  counting: {
+    name: '🪣 Tri Comptage',
+    desc: `<h3>Tri Comptage — CountingSort</h3>
+<p>Pas de comparaisons ! On compte combien de fois chaque valeur apparaît, on calcule les index de départ de chaque groupe, puis on place chaque élément directement à sa position finale.</p>
+<ul style="margin-top:0.5rem">
+<li>Ici : valeurs de 1 à 9</li>
+<li>3 phases : Compter → Index → Placer</li>
+<li>Complexité <strong style="color:#6affa0">O(n+b)</strong> = linéaire !</li>
+</ul>`,
+    complexity: [
+      { label: 'Complexité', value: 'O(n+b)', cls: 'good' },
+      { label: 'Mémoire', value: 'O(n+b)', cls: 'medium' },
+      { label: 'Stable', value: 'Oui ✅', cls: 'good' }
+    ],
+    legend: [
+      { color: '#7c6aff', label: 'Non traité' },
+      { color: '#ffda6a', label: 'En cours de comptage' },
+      { color: '#6aaeff', label: 'Compteur actif' },
+      { color: '#6affa0', label: 'Placé' }
+    ],
+    code: `<span class="fn">TriComptage</span>(A, n, b):
+  C ← tableau[b] de 0
+  <span class="kw">pour</span> e <span class="kw">dans</span> A :  <span class="cm">// compter</span>
+    C[e]++
+  idx ← 0
+  <span class="kw">pour</span> i <span class="kw">de</span> 0 <span class="kw">à</span> b :  <span class="cm">// index</span>
+    tmp←C[i]; C[i]←idx; idx+=tmp
+  B ← tableau vide
+  <span class="kw">pour</span> e <span class="kw">dans</span> A :  <span class="cm">// placer</span>
+    B[C[e]]←e; C[e]++
+<span class="cm">// O(n+b) — sans comparaison !</span>`,
+    generate: generateCounting
+  }
+};
+
+// ======= STEP GENERATORS =======
+
+function generateBubble() {
+  const arr = [...INITIAL];
+  const steps = [];
+  const n = arr.length;
+
+  steps.push({ arr: [...arr], colors: arr.map(() => 'normal'), msg: `Tableau initial : [${arr.join(', ')}]. On va comparer les voisins et faire "remonter" les grands éléments.`, ops: 0 });
+
+  let ops = 0;
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = 0; j < n - i - 1; j++) {
+      ops++;
+      const c = arr.map((_, k) => k >= n - i ? 'sorted' : 'normal');
+      c[j] = 'comparing'; c[j + 1] = 'comparing';
+      steps.push({ arr: [...arr], colors: c, msg: `Passage ${i+1}, compare A[${j}]=${arr[j]} et A[${j+1}]=${arr[j+1]}. ${arr[j+1] < arr[j] ? `${arr[j+1]} < ${arr[j]} → on échange !` : `${arr[j+1]} ≥ ${arr[j]} → pas d'échange.`}`, ops });
+
+      if (arr[j + 1] < arr[j]) {
+        const c2 = arr.map((_, k) => k >= n - i ? 'sorted' : 'normal');
+        c2[j] = 'swapping'; c2[j + 1] = 'swapping';
+        steps.push({ arr: [...arr], colors: c2, msg: `↔ Échange de ${arr[j]} et ${arr[j+1]}.`, ops });
+        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+      }
+    }
+    const c = arr.map((_, k) => k >= n - i - 1 ? 'sorted' : 'normal');
+    steps.push({ arr: [...arr], colors: c, msg: `✅ Fin du passage ${i+1}. Les ${i+1} plus grand(s) élément(s) sont en place à droite : [${arr.slice(n-i-1).join(', ')}].`, ops });
+  }
+
+  const c = arr.map(() => 'sorted');
+  steps.push({ arr: [...arr], colors: c, msg: `🎉 Tableau trié : [${arr.join(', ')}]. ${ops} comparaisons effectuées.`, ops });
+  return steps;
+}
+
+function generateSelection() {
+  const arr = [...INITIAL];
+  const steps = [];
+  const n = arr.length;
+  let ops = 0;
+
+  steps.push({ arr: [...arr], colors: arr.map(() => 'normal'), msg: `Tableau initial : [${arr.join(', ')}]. À chaque tour, on trouve le minimum du reste et on l'échange.`, ops: 0 });
+
+  for (let i = 0; i < n - 1; i++) {
+    let imin = i;
+    const c0 = arr.map((_, k) => k < i ? 'sorted' : 'normal');
+    c0[i] = 'comparing';
+    steps.push({ arr: [...arr], colors: c0, msg: `Tour ${i+1} : on cherche le minimum de A[${i}..${n-1}]. Minimum provisoire : A[${i}]=${arr[i]}.`, ops });
+
+    for (let j = i + 1; j < n; j++) {
+      ops++;
+      const c = arr.map((_, k) => k < i ? 'sorted' : 'normal');
+      c[imin] = 'comparing';
+      c[j] = 'left-part';
+      steps.push({ arr: [...arr], colors: c, msg: `Examine A[${j}]=${arr[j]} vs minimum actuel A[${imin}]=${arr[imin]}. ${arr[j] < arr[imin] ? `${arr[j]} < ${arr[imin]} → nouveau minimum !` : `${arr[j]} ≥ ${arr[imin]} → minimum inchangé.`}`, ops });
+
+      if (arr[j] < arr[imin]) imin = j;
+    }
+
+    if (imin !== i) {
+      const c = arr.map((_, k) => k < i ? 'sorted' : 'normal');
+      c[i] = 'swapping'; c[imin] = 'swapping';
+      steps.push({ arr: [...arr], colors: c, msg: `↔ Minimum trouvé : A[${imin}]=${arr[imin]}. Échange avec A[${i}]=${arr[i]}.`, ops });
+      [arr[i], arr[imin]] = [arr[imin], arr[i]];
+    } else {
+      steps.push({ arr: [...arr], colors: arr.map((_, k) => k <= i ? 'sorted' : 'normal'), msg: `Le minimum ${arr[i]} est déjà en position ${i}. Pas d'échange nécessaire.`, ops });
+    }
+
+    const c = arr.map((_, k) => k <= i ? 'sorted' : 'normal');
+    steps.push({ arr: [...arr], colors: c, msg: `✅ A[${i}]=${arr[i]} est en place définitive. ${i+1} élément(s) trié(s).`, ops });
+  }
+
+  const c = arr.map(() => 'sorted');
+  steps.push({ arr: [...arr], colors: c, msg: `🎉 Tableau trié : [${arr.join(', ')}]. Seulement ${n-1} échanges pour ${ops} comparaisons !`, ops });
+  return steps;
+}
+
+function generateInsertion() {
+  const arr = [...INITIAL];
+  const steps = [];
+  const n = arr.length;
+  let ops = 0;
+
+  steps.push({ arr: [...arr], colors: ['sorted', ...arr.slice(1).map(() => 'normal')], msg: `Tableau initial : [${arr.join(', ')}]. A[0]=${arr[0]} est déjà "trié" (1 carte en main). On insère les suivants un par un.`, ops: 0 });
+
+  for (let i = 1; i < n; i++) {
+    const tmp = arr[i];
+    let j = i;
+    const c = arr.map((_, k) => k < i ? 'sorted' : 'normal');
+    c[i] = 'swapping';
+    steps.push({ arr: [...arr], colors: c, msg: `🃏 On prend la carte A[${i}]=${tmp} (tmp=${tmp}). La partie triée est [${arr.slice(0,i).join(', ')}].`, ops });
+
+    while (j > 0 && arr[j - 1] > tmp) {
+      ops++;
+      const c2 = arr.map((_, k) => k < i ? 'sorted' : 'normal');
+      c2[j - 1] = 'comparing';
+      c2[j] = 'comparing';
+      steps.push({ arr: [...arr], colors: c2, msg: `A[${j-1}]=${arr[j-1]} > tmp=${tmp} → on décale A[${j-1}] vers la droite.`, ops });
+      arr[j] = arr[j - 1];
+      const c3 = arr.map((_, k) => k < i ? 'sorted' : 'normal');
+      c3[j] = 'comparing';
+      steps.push({ arr: [...arr], colors: c3, msg: `Décalage : A[${j}] ← ${arr[j]}. tmp=${tmp} cherche encore sa place...`, ops });
+      j--;
+    }
+
+    arr[j] = tmp;
+    const c4 = arr.map((_, k) => k <= i ? 'sorted' : 'normal');
+    steps.push({ arr: [...arr], colors: c4, msg: `✅ Insertion : A[${j}] ← tmp=${tmp}. Partie triée : [${arr.slice(0,i+1).join(', ')}].`, ops });
+  }
+
+  const c = arr.map(() => 'sorted');
+  steps.push({ arr: [...arr], colors: c, msg: `🎉 Tableau trié : [${arr.join(', ')}]. ${ops} comparaisons — optimal si le tableau était presque trié !`, ops });
+  return steps;
+}
+
+function generateMerge() {
+  const arr = [...INITIAL];
+  const steps = [];
+  let ops = 0;
+
+  steps.push({ arr: [...arr], colors: arr.map(() => 'normal'), msg: `Tableau initial : [${arr.join(', ')}]. On va diviser en 2, trier chaque moitié, puis fusionner.`, ops: 0 });
+
+  function addStep(a, cols, msg) {
+    steps.push({ arr: [...a], colors: [...cols], msg, ops });
+  }
+
+  function merge(a, lo, mid, hi) {
+    const L = a.slice(lo, mid + 1);
+    const R = a.slice(mid + 1, hi + 1);
+
+    const cShow = a.map((_, k) => {
+      if (k >= lo && k <= mid) return 'left-part';
+      if (k > mid && k <= hi) return 'right-part';
+      if (k < lo || k > hi) return 'sorted';
+      return 'normal';
+    });
+    addStep(a, cShow, `🔀 Fusion de L=[${L.join(',')}] (bleu) et R=[${R.join(',')}] (orange) pour les indices [${lo}..${hi}].`);
+
+    let i = 0, j = 0, k = lo;
+    while (i < L.length && j < R.length) {
+      ops++;
+      const c = a.map((_, idx) => {
+        if (idx >= lo && idx < k) return 'sorted';
+        if (idx === lo + i) return 'left-part';
+        if (idx === mid + 1 + j) return 'right-part';
+        if (idx > lo && idx <= mid) return 'left-part';
+        if (idx > mid && idx <= hi) return 'right-part';
+        return 'normal';
+      });
+      addStep(a, c, `Compare L[${i}]=${L[i]} et R[${j}]=${R[j]} → on prend ${L[i] <= R[j] ? `L[${i}]=${L[i]}` : `R[${j}]=${R[j]}`}.`);
+
+      if (L[i] <= R[j]) {
+        a[k] = L[i++];
+      } else {
+        a[k] = R[j++];
+      }
+
+      const c2 = a.map((_, idx) => {
+        if (idx >= lo && idx <= k) return 'sorted';
+        if (idx > lo && idx <= mid) return 'left-part';
+        if (idx > mid && idx <= hi) return 'right-part';
+        return 'normal';
+      });
+      addStep(a, c2, `→ A[${k}]=${a[k]} placé. Tableau en cours : [${a.join(', ')}]`);
+      k++;
+    }
+    while (i < L.length) { a[k++] = L[i++]; }
+    while (j < R.length) { a[k++] = R[j++]; }
+
+    const cDone = a.map((_, idx) => {
+      if (idx >= lo && idx <= hi) return 'sorted';
+      return 'normal';
+    });
+    addStep(a, cDone, `✅ Fusion terminée pour [${lo}..${hi}] : [${a.slice(lo, hi+1).join(', ')}]`);
+  }
+
+  function mergeSort(a, lo, hi) {
+    if (hi <= lo) {
+      const c = a.map((_, k) => (k === lo ? 'sorted' : 'normal'));
+      addStep(a, c, `Base : A[${lo}]=${a[lo]} est un tableau de 1 élément → déjà trié.`);
+      return;
+    }
+    const mid = lo + Math.floor((hi - lo) / 2);
+    const c = a.map((_, k) => {
+      if (k >= lo && k <= mid) return 'left-part';
+      if (k > mid && k <= hi) return 'right-part';
+      return 'normal';
+    });
+    addStep(a, c, `✂️ Division : [${lo}..${hi}] → gauche [${lo}..${mid}] (bleu) et droite [${mid+1}..${hi}] (orange).`);
+    mergeSort(a, lo, mid);
+    mergeSort(a, mid + 1, hi);
+    merge(a, lo, mid, hi);
+  }
+
+  mergeSort(arr, 0, arr.length - 1);
+  const c = arr.map(() => 'sorted');
+  steps.push({ arr: [...arr], colors: c, msg: `🎉 Tableau trié : [${arr.join(', ')}]. Complexité O(n·log n) garantie !`, ops });
+  return steps;
+}
+
+function generateQuick() {
+  const arr = [...INITIAL];
+  const steps = [];
+  let ops = 0;
+
+  steps.push({ arr: [...arr], colors: arr.map(() => 'normal'), msg: `Tableau initial : [${arr.join(', ')}]. On choisit A[hi] comme pivot, on partitionne, puis on trie récursivement.`, ops: 0 });
+
+  const sorted = new Set();
+
+  function addStep(a, cols, msg) {
+    steps.push({ arr: [...a], colors: [...cols], msg, ops });
+  }
+
+  function getColors(a, lo, hi, extra) {
+    return a.map((_, k) => {
+      if (sorted.has(k)) return 'sorted';
+      if (k < lo || k > hi) return 'normal';
+      if (extra && extra[k]) return extra[k];
+      return 'normal';
+    });
+  }
+
+  function partition(a, lo, hi) {
+    const pivotVal = a[hi];
+    let c = getColors(a, lo, hi, { [hi]: 'pivot' });
+    addStep(a, c, `🎯 Pivot = A[${hi}]=${pivotVal}. On va placer les éléments < ${pivotVal} à gauche et > ${pivotVal} à droite.`);
+
+    let i = lo - 1, j = hi;
+    while (true) {
+      do { i++; ops++; } while (a[i] < pivotVal);
+      do { j--; ops++; } while (j > lo && a[j] > pivotVal);
+
+      const cMid = getColors(a, lo, hi, { [i]: 'left-part', [j]: 'right-part', [hi]: 'pivot' });
+      addStep(a, cMid, `i=${i} (A[i]=${a[i]}≥${pivotVal}) et j=${j} (A[j]=${a[j]}≤${pivotVal}). ${i >= j ? 'i≥j → on arrête.' : `Échange A[${i}]=${a[i]} ↔ A[${j}]=${a[j]}.`}`);
+
+      if (i >= j) break;
+      [a[i], a[j]] = [a[j], a[i]];
+      const cSwap = getColors(a, lo, hi, { [i]: 'swapping', [j]: 'swapping', [hi]: 'pivot' });
+      addStep(a, cSwap, `↔ Après échange : [${a.join(', ')}]`);
+    }
+
+    const cBefore = getColors(a, lo, hi, { [i]: 'swapping', [hi]: 'swapping' });
+    addStep(a, cBefore, `↔ Place le pivot A[${hi}]=${pivotVal} en position i=${i}.`);
+    [a[i], a[hi]] = [a[hi], a[i]];
+    sorted.add(i);
+
+    const cAfter = getColors(a, lo, hi, {});
+    cAfter[i] = 'sorted';
+    addStep(a, cAfter, `✅ Pivot ${pivotVal} en place en A[${i}]. Gauche [${lo}..${i-1}] ≤ ${pivotVal}, Droite [${i+1}..${hi}] ≥ ${pivotVal}.`);
+    return i;
+  }
+
+  function quickSort(a, lo, hi) {
+    if (lo >= hi) {
+      if (lo === hi) sorted.add(lo);
+      return;
+    }
+    const p = partition(a, lo, hi);
+    quickSort(a, lo, p - 1);
+    quickSort(a, p + 1, hi);
+  }
+
+  quickSort(arr, 0, arr.length - 1);
+  const c = arr.map(() => 'sorted');
+  steps.push({ arr: [...arr], colors: c, msg: `🎉 Tableau trié : [${arr.join(', ')}]. ${ops} comparaisons. En place, pas de mémoire supplémentaire !`, ops });
+  return steps;
+}
+
+function generateCounting() {
+  const arr = [...INITIAL];
+  const steps = [];
+  const b = 10; // values 1-9
+  const counts = new Array(b).fill(0);
+
+  steps.push({ arr: [...arr], colors: arr.map(() => 'normal'), msg: `Tableau initial : [${arr.join(', ')}]. Valeurs entre 1 et 9. On va compter sans jamais comparer deux éléments !`, ops: 0, counts: [...counts], phase: 'count' });
+
+  // Phase 1: Count
+  for (let i = 0; i < arr.length; i++) {
+    const c = arr.map((_, k) => k === i ? 'comparing' : (k < i ? 'sorted' : 'normal'));
+    counts[arr[i]]++;
+    steps.push({ arr: [...arr], colors: c, msg: `Phase 1 — Comptage : A[${i}]=${arr[i]} → C[${arr[i]}]++ = ${counts[arr[i]]}. Compteurs : [${counts.slice(1).join(', ')}]`, ops: i+1, counts: [...counts], phase: 'count' });
+  }
+
+  steps.push({ arr: [...arr], colors: arr.map(() => 'normal'), msg: `✅ Comptage terminé ! C = [${counts.slice(1).join(', ')}] (pour valeurs 1..9). C[v] = nombre d'occurrences de v.`, ops: arr.length, counts: [...counts], phase: 'count' });
+
+  // Phase 2: Compute indices
+  const idx = [...counts];
+  let start = 0;
+  for (let i = 0; i < b; i++) {
+    const tmp = idx[i];
+    idx[i] = start;
+    start += tmp;
+    if (tmp > 0) {
+      steps.push({ arr: [...arr], colors: arr.map(() => 'left-part'), msg: `Phase 2 — Index : valeur ${i} commencera en position ${idx[i]} (il y a ${tmp} occurrence(s)). Prochain départ : ${start}.`, ops: arr.length + i, counts: [...idx], phase: 'index' });
+    }
+  }
+
+  steps.push({ arr: [...arr], colors: arr.map(() => 'left-part'), msg: `✅ Index calculés ! Chaque valeur sait où elle doit aller dans B[]. On passe au placement.`, ops: arr.length + b, counts: [...idx], phase: 'index' });
+
+  // Phase 3: Place
+  const B = new Array(arr.length).fill(0);
+  const finalIdx = [...idx];
+  for (let i = 0; i < arr.length; i++) {
+    const val = arr[i];
+    const pos = finalIdx[val];
+    B[pos] = val;
+    finalIdx[val]++;
+    const cArr = arr.map((_, k) => k === i ? 'pivot' : (k < i ? 'sorted' : 'normal'));
+    const cOut = B.map((v, k) => v !== 0 ? 'sorted' : 'normal');
+    steps.push({ arr: [...B], colors: cOut, msg: `Phase 3 — Placement : A[${i}]=${val} → B[${pos}]=${val}. Tableau de sortie B = [${B.map(v => v||'_').join(', ')}]`, ops: arr.length + b + i + 1, counts: [...finalIdx], phase: 'place' });
+  }
+
+  steps.push({ arr: [...B], colors: B.map(() => 'sorted'), msg: `🎉 Tableau trié : [${B.join(', ')}]. Complexité O(n+b)=${arr.length}+${b}=${arr.length+b} opérations. Aucune comparaison !`, ops: arr.length*2+b, counts: [...finalIdx], phase: 'place' });
+  return steps;
+}
+
+// ======= UI =======
+
+function renderBars(arr, colors) {
+  const max = MAX_VAL;
+  const container = document.getElementById('barChart');
+  container.innerHTML = '';
+  arr.forEach((val, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = `bar ${colors[i]}`;
+    bar.style.height = `${(val / max) * 150}px`;
+    const lbl = document.createElement('div');
+    lbl.className = 'bar-label';
+    lbl.textContent = `[${i}]`;
+    const valEl = document.createElement('div');
+    valEl.className = 'bar-val';
+    valEl.textContent = val;
+    wrap.appendChild(bar);
+    wrap.appendChild(valEl);
+    wrap.appendChild(lbl);
+    container.appendChild(wrap);
+  });
+}
+
+function renderCells(arr, colors) {
+  const container = document.getElementById('cellArray');
+  container.innerHTML = '';
+  arr.forEach((val, i) => {
+    const cell = document.createElement('div');
+    cell.className = `arr-cell ${colors[i]}`;
+    cell.textContent = val;
+    container.appendChild(cell);
+  });
+}
+
+function renderStep(idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  const s = steps[idx];
+  renderBars(s.arr, s.colors);
+  renderCells(s.arr, s.colors);
+
+  document.getElementById('stepInfo').innerHTML = s.msg.replace(/(\d+)/g, (m) => `<strong>${m}</strong>`);
+  document.getElementById('stepLabel').textContent = `Étape ${idx + 1} / ${steps.length}`;
+  document.getElementById('opCount').textContent = `${s.ops} opérations`;
+  document.getElementById('progressFill').style.width = `${((idx + 1) / steps.length) * 100}%`;
+
+  // Update steps log
+  const log = document.getElementById('stepsLog');
+  [...log.children].forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+    if (i === idx) el.scrollIntoView({ block: 'nearest' });
+  });
+
+  document.getElementById('btnPrev').disabled = idx === 0;
+  document.getElementById('btnNext').disabled = idx === steps.length - 1;
+}
+
+function buildStepsLog() {
+  const log = document.getElementById('stepsLog');
+  log.innerHTML = '';
+  steps.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'step-item';
+    el.innerHTML = `<span class="step-num">${i + 1}.</span>${s.msg.substring(0, 70)}${s.msg.length > 70 ? '…' : ''}`;
+    el.onclick = () => { currentStep = i; renderStep(i); };
+    log.appendChild(el);
+  });
+}
+
+function selectAlgo(name) {
+  currentAlgo = name;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', Object.keys(ALGOS)[i] === name);
+  });
+  resetViz();
+  const algo = ALGOS[name];
+
+  document.getElementById('algoDescription').innerHTML = algo.desc;
+
+  const cg = document.getElementById('complexityGrid');
+  cg.innerHTML = '';
+  algo.complexity.forEach(c => {
+    cg.innerHTML += `<div class="complexity-item"><div class="label">${c.label}</div><div class="value ${c.cls}">${c.value}</div></div>`;
+  });
+
+  const lg = document.getElementById('legend');
+  lg.innerHTML = '';
+  algo.legend.forEach(l => {
+    lg.innerHTML += `<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div><span style="font-size:0.72rem;color:#b0b0d0">${l.label}</span></div>`;
+  });
+
+  document.getElementById('codeBlock').innerHTML = algo.code;
+}
+
+function startViz() {
+  stopPlay();
+  steps = ALGOS[currentAlgo].generate();
+  currentStep = 0;
+  buildStepsLog();
+  renderStep(0);
+  document.getElementById('btnStart').textContent = '⏸ Pause';
+  document.getElementById('btnStart').onclick = pauseViz;
+  startPlay();
+}
+
+function pauseViz() {
+  stopPlay();
+  document.getElementById('btnStart').textContent = '▶ Reprendre';
+  document.getElementById('btnStart').onclick = resumeViz;
+}
+
+function resumeViz() {
+  document.getElementById('btnStart').textContent = '⏸ Pause';
+  document.getElementById('btnStart').onclick = pauseViz;
+  startPlay();
+}
+
+function startPlay() {
+  playing = true;
+  playInterval = setInterval(() => {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      renderStep(currentStep);
+    } else {
+      stopPlay();
+      document.getElementById('btnStart').textContent = '↺ Rejouer';
+      document.getElementById('btnStart').onclick = startViz;
+    }
+  }, speed);
+}
+
+function stopPlay() {
+  playing = false;
+  clearInterval(playInterval);
+}
+
+function nextStep() {
+  stopPlay();
+  document.getElementById('btnStart').textContent = '▶ Reprendre';
+  document.getElementById('btnStart').onclick = resumeViz;
+  if (currentStep < steps.length - 1) { currentStep++; renderStep(currentStep); }
+}
+
+function prevStep() {
+  stopPlay();
+  document.getElementById('btnStart').textContent = '▶ Reprendre';
+  document.getElementById('btnStart').onclick = resumeViz;
+  if (currentStep > 0) { currentStep--; renderStep(currentStep); }
+}
+
+function resetViz() {
+  stopPlay();
+  steps = [];
+  currentStep = -1;
+  playing = false;
+  document.getElementById('btnStart').textContent = '▶ Démarrer';
+  document.getElementById('btnStart').onclick = startViz;
+  document.getElementById('btnPrev').disabled = true;
+  document.getElementById('btnNext').disabled = true;
+  document.getElementById('stepInfo').textContent = "Appuie sur ▶ Démarrer pour lancer la visualisation pas-à-pas.";
+  document.getElementById('stepsLog').innerHTML = '';
+  document.getElementById('stepLabel').textContent = 'Étape 0 / 0';
+  document.getElementById('opCount').textContent = '0 opérations';
+  document.getElementById('progressFill').style.width = '0%';
+  renderBars(INITIAL, INITIAL.map(() => 'normal'));
+  renderCells(INITIAL, INITIAL.map(() => 'normal'));
+}
+
+function updateSpeed() {
+  const val = parseInt(document.getElementById('speedSlider').value);
+  speed = 1600 - val;
+  const mult = val <= 400 ? '×0.5' : val <= 700 ? '×1' : val <= 1100 ? '×2' : '×3';
+  document.getElementById('speedLabel').textContent = mult;
+  if (playing) { stopPlay(); startPlay(); }
+}
+
+// Init
+selectAlgo('bubble');
+renderBars(INITIAL, INITIAL.map(() => 'normal'));
+renderCells(INITIAL, INITIAL.map(() => 'normal'));
+</script>
+</body>
+</html>
